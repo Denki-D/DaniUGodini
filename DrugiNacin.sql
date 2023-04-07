@@ -15,7 +15,7 @@ SELECT
     ROW_NUMBER() OVER (ORDER BY Dat),
     DATENAME(weekday, Dat),
     CASE
-        WHEN Dat IN (
+        WHEN Dat IN ( --prilagoditi zbog pomiènih blagdana
             '2023/01/01', '2023/01/06', '2023/04/09', '2023/04/10', '2023/05/01',
             '2023/05/30', '2023/06/08', '2023/06/22', '2023/08/05', '2023/08/15',
             '2023/11/01', '2023/11/18', '2023/12/25', '2023/12/26'
