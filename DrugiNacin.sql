@@ -30,13 +30,20 @@ FROM (
 ) d;
 
 SELECT
-    Datum=CONVERT(varchar, Dat, 104) + '.',
-    [Dan u godini],
-    [Dan u tjednu],
-    [Radni dan],
-    [Radni dan u godini]=CASE
-        WHEN [Radni dan]='RADNI DAN' THEN CONVERT(NVARCHAR, ROW_NUMBER() OVER (PARTITION BY [Radni dan] ORDER BY Dat))
-        ELSE 'neradan'
-    END
+    Datum=CONVERT(varchar, Dat, 104) + '.'
+    , [Dan u godini]
+    , [Dan u tjednu]
+    , [Radni dan]
+    , [Radni dan u godini]=
+		CASE
+			WHEN [Radni dan]='RADNI DAN' THEN CONVERT(NVARCHAR, ROW_NUMBER() OVER (PARTITION BY [Radni dan] ORDER BY Dat))
+			ELSE 'neradan'
+		END
+	, [Radni dan u mjesecu]=
+		CASE
+			WHEN [Radni dan]='RADNI DAN' THEN CONVERT(NVARCHAR, ROW_NUMBER() 
+				OVER (PARTITION BY [Radni dan], month(dat) ORDER BY Dat))
+			ELSE 'neradan'
+		END
 FROM @datumi
 ORDER BY Dat;
