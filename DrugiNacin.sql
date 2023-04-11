@@ -1,4 +1,4 @@
-SET LANGUAGE hrvatski
+﻿SET LANGUAGE hrvatski
 DECLARE @start DATE=DATEFROMPARTS(YEAR(GETDATE()), 1, 1);
 DECLARE @end DATE=DATEFROMPARTS(YEAR(GETDATE()), 12, 31);
 
@@ -6,16 +6,17 @@ DECLARE @datumi TABLE (
     Dat DATE PRIMARY KEY,
     [Dan u godini] INT,
     [Dan u tjednu] NVARCHAR(20),
-    [Radni dan] NVARCHAR(20)
+    [Radni dan] NVARCHAR(20),
+	ObracunskiDan NVARCHAR(20)
 );
 
-INSERT INTO @datumi (Dat, [Dan u godini], [Dan u tjednu], [Radni dan])
+INSERT INTO @datumi (Dat, [Dan u godini], [Dan u tjednu], [Radni dan], ObracunskiDan)
 SELECT
-    Dat,
-    ROW_NUMBER() OVER (ORDER BY Dat),
-    DATENAME(weekday, Dat),
-    CASE
-        WHEN Dat IN ( --prilagoditi zbog pomi�nih blagdana
+    Dat
+    , ROW_NUMBER() OVER (ORDER BY Dat)
+    , DATENAME(weekday, Dat)
+	, CASE
+        WHEN Dat IN ( --prilagoditi zbog pomičnih blagdana
             '2023/01/01', '2023/01/06', '2023/04/09', '2023/04/10', '2023/05/01',
             '2023/05/30', '2023/06/08', '2023/06/22', '2023/08/05', '2023/08/15',
             '2023/11/01', '2023/11/18', '2023/12/25', '2023/12/26'
@@ -23,6 +24,11 @@ SELECT
         WHEN DATENAME(weekday, Dat) IN ('subota', 'nedjelja') THEN 'vikend'
         ELSE 'RADNI DAN'
     END
+	, ObracunskiDan=
+	 CASE
+     	WHEN DATENAME(weekday, Dat) IN ('subota', 'nedjelja') THEN 'vikend'
+     	ELSE 'obračunski dan'
+     END
 FROM (
     SELECT TOP (DATEDIFF(day, @start, @end) + 1) Dat=DATEADD(day, ROW_NUMBER() OVER (ORDER BY a.object_id) - 1, @start)
     FROM sys.all_objects a
@@ -33,17 +39,30 @@ SELECT
     Datum=CONVERT(varchar, Dat, 104) + '.'
     , [Dan u godini]
     , [Dan u tjednu]
-    , [Radni dan]
-    , [Radni dan u godini]=
+    --, [Radni dan]
+	--, ObracunskiDan
+    , [Obračunski dan u godini]=
+        CASE
+        	WHEN ObracunskiDan='obračunski dan' THEN CONVERT(nvarchar, ROW_NUMBER() OVER (PARTITION BY ObracunskiDan ORDER BY Dat))
+        	ELSE 'vikend'
+        END
+	, [Radni dan u godini]=
 		CASE
 			WHEN [Radni dan]='RADNI DAN' THEN CONVERT(NVARCHAR, ROW_NUMBER() OVER (PARTITION BY [Radni dan] ORDER BY Dat))
-			ELSE 'neradan'
+			WHEN [Radni dan]='praznik' THEN 'praznik'
+			ELSE 'vikend'
+		END
+	, [Obračunski dan u mjesecu]=
+		CASE
+			WHEN ObracunskiDan='obračunski dan' THEN CONVERT(nvarchar, ROW_NUMBER() OVER (PARTITION BY ObracunskiDan, MONTH(dat) ORDER BY Dat))
+			ELSE 'vikend'
 		END
 	, [Radni dan u mjesecu]=
 		CASE
 			WHEN [Radni dan]='RADNI DAN' THEN CONVERT(NVARCHAR, ROW_NUMBER() 
 				OVER (PARTITION BY [Radni dan], month(dat) ORDER BY Dat))
-			ELSE 'neradan'
+			WHEN [Radni dan]='praznik' THEN 'praznik'
+			ELSE 'vikend'
 		END
 FROM @datumi
 ORDER BY Dat;

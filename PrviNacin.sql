@@ -22,21 +22,38 @@ SELECT
                   WHEN DATENAME(weekday, Dat) IN ('subota', 'nedjelja') THEN 'vikend'
                   ELSE 'RADNI DAN'
             END
+	, ObracunskiDan=
+		      CASE
+                  WHEN DATENAME(weekday, Dat) IN ('subota', 'nedjelja') THEN 'vikend'
+                  ELSE 'obračunski dan'
+            END
 INTO #datumi
 FROM datumi
 
 SELECT Datum=CONVERT(varchar, Dat, 104)+'.'
-      , [Dan u godini], [Dan u tjednu], [Radni dan]
+      , [Dan u godini], [Dan u tjednu]--, [Radni dan], ObracunskiDan
+	, [Obračunski dan u godini]=
+            CASE
+                  WHEN ObracunskiDan='obračunski dan' THEN CONVERT(nvarchar, ROW_NUMBER() OVER (PARTITION BY ObracunskiDan ORDER BY Dat))
+                  ELSE 'vikend'
+            END
       , [Radni dan u godini]=
             CASE
-                  WHEN [Radni dan]='RAdni dan' THEN CONVERT(nvarchar, ROW_NUMBER() OVER (PARTITION BY [Radni dan] ORDER BY Dat))
-                  ELSE 'neradan'
+            	WHEN [Radni dan]='RAdni dan' THEN CONVERT(nvarchar, ROW_NUMBER() OVER (PARTITION BY [Radni dan] ORDER BY Dat))
+				WHEN [Radni dan]='praznik' THEN 'praznik'
+				ELSE 'vikend'
+            END
+	, [Obračunski dan u mjesecu]=
+            CASE
+                  WHEN ObracunskiDan='obračunski dan' THEN CONVERT(nvarchar, ROW_NUMBER() OVER (PARTITION BY ObracunskiDan, MONTH(dat) ORDER BY Dat))
+                  ELSE 'vikend'
             END
 	, [Radni dan u mjesecu]=
 		CASE
 			WHEN [Radni dan]='RADNI DAN' THEN CONVERT(NVARCHAR, ROW_NUMBER() 
 				OVER (PARTITION BY [Radni dan], month(dat) ORDER BY Dat))
-			ELSE 'neradan'
+				WHEN [Radni dan]='praznik' THEN 'praznik'
+				ELSE 'vikend'
 		END
 FROM #datumi
 order by dat
