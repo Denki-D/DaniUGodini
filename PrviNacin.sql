@@ -32,6 +32,12 @@ SELECT Datum=CONVERT(varchar, Dat, 104)+'.'
                   WHEN [Radni dan]='RAdni dan' THEN CONVERT(nvarchar, ROW_NUMBER() OVER (PARTITION BY [Radni dan] ORDER BY Dat))
                   ELSE 'neradan'
             END
+	, [Radni dan u mjesecu]=
+		CASE
+			WHEN [Radni dan]='RADNI DAN' THEN CONVERT(NVARCHAR, ROW_NUMBER() 
+				OVER (PARTITION BY [Radni dan], month(dat) ORDER BY Dat))
+			ELSE 'neradan'
+		END
 FROM #datumi
 order by dat
 
