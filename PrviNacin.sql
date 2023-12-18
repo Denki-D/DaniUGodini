@@ -1,19 +1,18 @@
 SET LANGUAGE hrvatski;
 GO
-
-CREATE OR ALTER FUNCTION dbo.VratiDatumUskrsa (@godina INT) -- from: https://medium.com/@diangermishuizen/calculate-easter-sunday-dynamically-using-sql-447235cb8906
+CREATE OR ALTER FUNCTION dbo.VratiDatumUskrsa (@godinaF INT)
 RETURNS DATE
 AS
 BEGIN
     DECLARE @varA TINYINT, @varB TINYINT, @varC TINYINT, @varD TINYINT, @varE TINYINT, @varF TINYINT, @varG TINYINT
 		  , @varH TINYINT, @varI TINYINT, @varK TINYINT, @varL TINYINT, @varM TINYINT,  @datumUskrsa DATE;    
-	SELECT @varA = @godina % 19, @varB = FLOOR(1.0 * @godina / 100), @varC = @godina % 100;
+	SELECT @varA = @godinaF % 19, @varB = FLOOR(1.0 * @godinaF / 100), @varC = @godinaF % 100;
     SELECT @varD = FLOOR(1.0 * @varB / 4), @varE = @varB % 4, @varF = FLOOR((8.0 + @varB) / 25);
     SELECT  @varG = FLOOR((1.0 + @varB - @varF) / 3);
-    SELECT @varH = (19 * @varA + @varB - @varD - @varG + 15) % 30, @varI = FLOOR(1.0 * @varC / 4), @varK = @godina % 4;
+    SELECT @varH = (19 * @varA + @varB - @varD - @varG + 15) % 30, @varI = FLOOR(1.0 * @varC / 4), @varK = @godinaF % 4;
     SELECT  @varL = (32.0 + 2 * @varE + 2 * @varI - @varH - @varK) % 7;
     SELECT @varM = FLOOR((1.0 * @varA + 11 * @varH + 22 * @varL) / 451);
-    SELECT  @datumUskrsa = DATEADD(dd, (@varH + @varL - 7 * @varM + 114) % 31, DATEADD(mm, FLOOR((1.0 * @varH + @varL - 7 * @varM + 114) / 31) - 1, DATEADD(yy, @godina - 2000, {d '2000-01-01' })));
+    SELECT  @datumUskrsa = DATEADD(dd, (@varH + @varL - 7 * @varM + 114) % 31, DATEADD(mm, FLOOR((1.0 * @varH + @varL - 7 * @varM + 114) / 31) - 1, DATEADD(yy, @godinaF - 2000, {d '2000-01-01' })));
     RETURN @datumUskrsa;
 END;
 GO
@@ -22,22 +21,22 @@ DECLARE @end DATE=dateadd(year, datediff(year, 0, getdate()), 364);
 
 --NEPOMIČNI PRAZNICI
 DECLARE
-	@NovaGodina date = DATEFROMPARTS(YEAR(GETDATE()), 1, 1),
-	@SvetaTriKralja date = DATEFROMPARTS(YEAR(GETDATE()), 1, 6),
-	@PraznikRada date = DATEFROMPARTS(YEAR(GETDATE()), 5, 1),
-	@DanDržavnosti date = DATEFROMPARTS(YEAR(GETDATE()), 5, 30),
-	@DanAntifaBorbe date = DATEFROMPARTS(YEAR(GETDATE()), 6, 22),
-	@DanPobjede date = DATEFROMPARTS(YEAR(GETDATE()), 8, 5),
-	@VelikaGospa date = DATEFROMPARTS(YEAR(GETDATE()), 8, 15),
-	@SviSveti date = DATEFROMPARTS(YEAR(GETDATE()), 11, 1),
-	@DanSjecanjaNaVukovar date = DATEFROMPARTS(YEAR(GETDATE()), 11, 18),
-	@Bozic date = DATEFROMPARTS(YEAR(GETDATE()), 12, 25),
-	@SvetiStjepan date = DATEFROMPARTS(YEAR(GETDATE()), 12, 26);
+	@NovaGodina date = DATEFROMPARTS(YEAR(getdate()), 1, 1),
+	@SvetaTriKralja date = DATEFROMPARTS(YEAR(getdate()), 1, 6),
+	@PraznikRada date = DATEFROMPARTS(YEAR(getdate()), 5, 1),
+	@DanDržavnosti date = DATEFROMPARTS(YEAR(getdate()), 5, 30),
+	@DanAntifaBorbe date = DATEFROMPARTS(YEAR(getdate()), 6, 22),
+	@DanPobjede date = DATEFROMPARTS(YEAR(getdate()), 8, 5),
+	@VelikaGospa date = DATEFROMPARTS(YEAR(getdate()), 8, 15),
+	@SviSveti date = DATEFROMPARTS(YEAR(getdate()), 11, 1),
+	@DanSjecanjaNaVukovar date = DATEFROMPARTS(YEAR(getdate()), 11, 18),
+	@Bozic date = DATEFROMPARTS(YEAR(getdate()), 12, 25),
+	@SvetiStjepan date = DATEFROMPARTS(YEAR(getdate()), 12, 26);
 
 --POMIČNI PRAZNICI
 DECLARE 
 	@Uskrs date;
-	SELECT @Uskrs= dbo.VratiDatumUskrsa(YEAR(GETDATE()));
+	SELECT @Uskrs= dbo.VratiDatumUskrsa(YEAR(getdate()));
 DECLARE
 	@UskrsniPonedjeljak date = dateadd(day, 1, @Uskrs),
 	@Tijelovo date = dateadd(day, 60, @Uskrs);
@@ -68,8 +67,10 @@ SELECT
             END
 INTO #datumi
 FROM datumi
-
-SELECT Datum=CONVERT(varchar, Dat, 104)+'.'
+GO
+DROP TABLE IF EXISTS #izracun
+GO
+SELECT Datum=Dat
       , [Dan u godini], [Dan u tjednu]--, [Radni dan], ObracunskiDan
 	, [Obračunski dan u godini]=
             CASE
@@ -94,5 +95,37 @@ SELECT Datum=CONVERT(varchar, Dat, 104)+'.'
 				WHEN [Radni dan]='praznik' THEN 'praznik'
 				ELSE 'vikend'
 		END
+into #izracun
 FROM #datumi
 order by dat
+GO
+SELECT Datum=CONVERT(varchar, Datum, 104)+'.'
+, [Dan u godini], [Dan u tjednu]
+, [Obračunski dan u godini], [Radni dan u godini],[Radni dan u mjesecu] 
+FROM #izracun
+ORDER BY [Dan u godini]
+go 
+WITH PoMjesecima AS(
+	SELECT distinct MONTH(dat) as MjesecInt
+		, SUM(CASE WHEN [Radni dan]='Radni dan' THEN 1 ELSE 0 END) OVER (PARTITION BY MONTH(dat) ORDER BY MONTH(dat)) AS 'Broj radnih dana'
+		, SUM(CASE WHEN [ObracunskiDan]='obračunski dan' THEN 1 ELSE 0 END) OVER (PARTITION BY MONTH(dat) ORDER BY MONTH(dat)) AS 'Broj obračunskih dana'
+		, SUM(CASE WHEN [Radni dan]='praznik' and [Dan u tjednu] not in ('subota','nedjelja') THEN 1 ELSE 0 END) OVER (PARTITION BY MONTH(dat) ORDER BY MONTH(dat)) AS 'Broj praznika'
+	FROM #datumi)
+, summaSummarumPoMjesecima as (
+	SELECT mjesecint
+		, [Broj obračunskih dana]
+		, [Broj obračunskih dana]*8 AS 'Mjesečni fond sati'
+		, [Broj radnih dana]
+		, [Broj radnih dana]*8 AS 'Radnih sati'
+		, [Broj praznika]
+		, [Broj praznika]*8 AS 'Sati praznika'
+	FROM PoMjesecima)
+SELECT ISNULL( DATENAME(month, dateadd(month, MjesecInt, 0)-1) , 'UKUPNO') AS Mjesec
+, [Broj obračunskih dana]=SUM([Broj obračunskih dana])
+, [Broj radnih dana]=SUM([Broj radnih dana])
+, [Broj praznika]=SUM([Broj praznika])
+, [Mjesečni fond sati]=SUM([Mjesečni fond sati])
+, [Radnih sati]=SUM([Radnih sati])
+, [Sati praznika]=SUM([Sati praznika])
+FROM summaSummarumPoMjesecima
+GROUP BY Mjesecint WITH ROLLUP
