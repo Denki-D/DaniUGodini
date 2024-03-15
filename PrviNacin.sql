@@ -31,7 +31,8 @@ DECLARE
 	@SviSveti date = DATEFROMPARTS(YEAR(getdate()), 11, 1),
 	@DanSjecanjaNaVukovar date = DATEFROMPARTS(YEAR(getdate()), 11, 18),
 	@Bozic date = DATEFROMPARTS(YEAR(getdate()), 12, 25),
-	@SvetiStjepan date = DATEFROMPARTS(YEAR(getdate()), 12, 26);
+	@SvetiStjepan date = DATEFROMPARTS(YEAR(getdate()), 12, 26),
+	@DanParlIzbora24 date = '2024/04/17';
 
 --POMIČNI PRAZNICI
 DECLARE 
@@ -58,6 +59,7 @@ SELECT
 						@PraznikRada, @DanDržavnosti,@Tijelovo, @DanAntifaBorbe, @DanPobjede, @VelikaGospa,
 						@SviSveti, @DanSjecanjaNaVukovar, @Bozic, @SvetiStjepan) THEN 'praznik'
                   WHEN DATENAME(weekday, Dat) IN ('subota', 'nedjelja') THEN 'vikend'
+				WHEN dat =@DanParlIzbora24 THEN 'Izbori 2024.'
                   ELSE 'RADNI DAN'
             END
 	, ObracunskiDan=
@@ -81,6 +83,7 @@ SELECT Datum=Dat
             CASE
             	WHEN [Radni dan]='RAdni dan' THEN CONVERT(nvarchar, ROW_NUMBER() OVER (PARTITION BY [Radni dan] ORDER BY Dat))
 				WHEN [Radni dan]='praznik' THEN 'praznik'
+				WHEN [Radni dan] ='Izbori 2024.' THEN 'PARL. IZBORI ''24.'
 				ELSE 'vikend'
             END
 	, [Obračunski dan u mjesecu]=
@@ -93,6 +96,7 @@ SELECT Datum=Dat
 			WHEN [Radni dan]='RADNI DAN' THEN CONVERT(NVARCHAR, ROW_NUMBER() 
 				OVER (PARTITION BY [Radni dan], month(dat) ORDER BY Dat))
 				WHEN [Radni dan]='praznik' THEN 'praznik'
+				WHEN [Radni dan] ='Izbori 2024.' THEN 'PARL. IZBORI ''24.'
 				ELSE 'vikend'
 		END
 into #izracun
@@ -109,7 +113,7 @@ WITH PoMjesecima AS(
 	SELECT distinct MONTH(dat) as MjesecInt
 		, SUM(CASE WHEN [Radni dan]='Radni dan' THEN 1 ELSE 0 END) OVER (PARTITION BY MONTH(dat) ORDER BY MONTH(dat)) AS 'Broj radnih dana'
 		, SUM(CASE WHEN [ObracunskiDan]='obračunski dan' THEN 1 ELSE 0 END) OVER (PARTITION BY MONTH(dat) ORDER BY MONTH(dat)) AS 'Broj obračunskih dana'
-		, SUM(CASE WHEN [Radni dan]='praznik' and [Dan u tjednu] not in ('subota','nedjelja') THEN 1 ELSE 0 END) OVER (PARTITION BY MONTH(dat) ORDER BY MONTH(dat)) AS 'Broj praznika'
+		, SUM(CASE WHEN [Radni dan] IN ('praznik', 'Izbori 2024.') and [Dan u tjednu] not in ('subota','nedjelja') THEN 1 ELSE 0 END) OVER (PARTITION BY MONTH(dat) ORDER BY MONTH(dat)) AS 'Broj praznika'
 	FROM #datumi)
 , summaSummarumPoMjesecima as (
 	SELECT mjesecint
