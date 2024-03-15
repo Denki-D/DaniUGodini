@@ -32,7 +32,8 @@ DECLARE
 	@SviSveti date = DATEFROMPARTS(YEAR(GETDATE()), 11, 1),
 	@DanSjecanjaNaVukovar date = DATEFROMPARTS(YEAR(GETDATE()), 11, 18),
 	@Bozic date = DATEFROMPARTS(YEAR(GETDATE()), 12, 25),
-	@SvetiStjepan date = DATEFROMPARTS(YEAR(GETDATE()), 12, 26);
+	@SvetiStjepan date = DATEFROMPARTS(YEAR(GETDATE()), 12, 26),
+	@DanParlIzbora24 date = '2024/04/17'
 
 --POMIČNI PRAZNICI
 DECLARE 
@@ -58,7 +59,7 @@ SELECT
 	, CASE
         WHEN Dat IN (@NovaGodina, @SvetaTriKralja, @Uskrs, @UskrsniPonedjeljak,
 						@PraznikRada, @DanDržavnosti,@Tijelovo, @DanAntifaBorbe, @DanPobjede, @VelikaGospa,
-						@SviSveti, @DanSjecanjaNaVukovar, @Bozic, @SvetiStjepan
+						@SviSveti, @DanSjecanjaNaVukovar, @Bozic, @SvetiStjepan, @DanParlIzbora24
         ) THEN 'praznik'
         WHEN DATENAME(weekday, Dat) IN ('subota', 'nedjelja') THEN 'vikend'
         ELSE 'RADNI DAN'
